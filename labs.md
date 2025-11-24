@@ -355,19 +355,23 @@ Then look back at the body of the response from running that, you should see an 
 
    This creates a production-ready customer support system - just update server configuration to add new support categories.
 
+   First, change into the directory for lab4.
+
+```
+cd lab4
+```
+
 <br><br>
 
 2. We have a skeleton file for our new classification server that shows the structure. Let's examine it and then build it out using our familiar diff-and-merge approach.
 
 ```
-code -d extra/mcp_server_solution.txt mcp_server_classification.py
+code -d ../extra/mcp_server_support_solution.txt mcp_server_classification.py
 ```
 
-![Updating the MCP server](./images/aiapps21.png?raw=true "Updating the MCP server") 
+<br>
 
-<br><br>
-
-3. As you review the differences, note the key components:
+As you review the differences, note the key components:
    - **CANONICAL_QUERIES**: A catalog of customer support query types:
      * `account_security`: Password resets, 2FA, account recovery
      * `device_troubleshooting`: Technical issues and device problems
@@ -379,9 +383,13 @@ code -d extra/mcp_server_solution.txt mcp_server_classification.py
    - **Knowledge retrieval**: `vector_search_knowledge()` and `get_knowledge_for_query()` for RAG
    - **Template tools**: `get_query_template()` returns customer support prompts
 
+<br>
+
+![Updating the MCP server](./images/aia-2-31.png?raw=true "Updating the MCP server") 
+
 <br><br>
 
-4. Merge each section by clicking the arrows. Pay attention to:
+3. Merge each section by clicking the arrows. Pay attention to:
    - How customer support queries are defined with category-specific templates
    - The PDF indexing process that runs automatically on startup
    - How each support category searches only relevant PDF documents
@@ -390,7 +398,7 @@ code -d extra/mcp_server_solution.txt mcp_server_classification.py
 
 <br><br>
 
-5. When finished merging, save the file by closing the tab. Now start the new server:
+4. When finished merging, save the file by closing the tab. Now start the new server:
 
 ```
 python mcp_server_classification.py
@@ -400,7 +408,7 @@ python mcp_server_classification.py
 
 <br><br>
 
-6. The server should start and initialize its knowledge base. **This will take awhile to index the PDFs and be ready.** You'll see:
+5. The server should start and initialize its knowledge base. (You can scroll back up to see some output.) It will do:
 
    - Loading of the embedding model (all-MiniLM-L6-v2)
    - Initialization of ChromaDB at ./mcp_chroma_db
@@ -411,26 +419,27 @@ python mcp_server_classification.py
      * Returns Policy 2024
    - Creation of vector collection with categorized chunks
 
-   The server now provides customer support tools:
+  The server now provides customer support tools:
    - **Knowledge Search** : RAG-based semantic search through PDFs
    - **Classification** : Support query intent classification
    - **Templates** : Customer support prompt templates
    - **Knowledge Retrieval** : Category-specific documentation retrieval
-   - **Weather** : Weather tools (kept from previous labs)
+   - **Validation** : Query validation tools
+   - **Statistics** : Knowledge base statistics
+  
 
-
-![Running the MCP server](./images/aiapps8.png?raw=true "Running the MCP server") 
+![Running the MCP server](./images/aia-2-33.png?raw=true "Running the MCP server") 
 
 <br><br>
 
-7. Understanding the knowledge base architecture:
+6. Understanding the knowledge base architecture:
     - The MCP server owns and manages the entire knowledge base
     - All OmniTech PDFs are automatically indexed into ChromaDB
     - Each document chunk is categorized (security, troubleshooting, shipping, returns)
     - Semantic search enables intelligent answer retrieval
     - Multiple support agents can share the same knowledge base
 
-Let's see the list of tools the MCP server makes available. Run the discovery tool again.
+Let's see the list of tools the MCP server makes available. In a separate terminal, run the discovery tool again.
 
 ```
 python tools/discover_tools.py
@@ -438,18 +447,17 @@ python tools/discover_tools.py
 
 <br><br>
 
-8.  You should see several customer support tool categories:
+7.  You should see several customer support tool categories:
    - **Knowledge search tools**: `vector_search_knowledge`, `get_knowledge_for_query`
    - **Classification tools**: `classify_canonical_query`, `get_query_template`, `list_canonical_queries`
-   - **Support categories**: Tools for each support type (security, troubleshooting, shipping, returns)
-   - **Validation tools**: `validate_query_parameters`
-   - **Weather tools**: `get_weather`, `geocode_location` (kept from previous labs)
+   - **Validation tools**: `validate_support_query`
+   - **Statistics tools**: `get_knowledge_base_stats`
 
-![Discover tools](./images/aiapps22.png?raw=true "Discover tools") 
+![Discover tools](./images/aia-2-34.png?raw=true "Discover tools") 
 
 <br><br>
 
-9. The server is now ready to handle customer support queries using the OmniTech knowledge base. It can classify support requests, retrieve relevant documentation, and provide structured templates for consistent responses. In the next lab, we'll build an agent that leverages these capabilities, so you can leave it running.
+8. The server is now ready to handle customer support queries using the OmniTech knowledge base. It can classify support requests, retrieve relevant documentation, and provide structured templates for consistent responses. In the next lab, we'll build an agent that leverages these capabilities, so you can leave it running.
 
 <p align="center">
 **[END OF LAB]**
