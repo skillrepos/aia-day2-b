@@ -345,93 +345,246 @@ Then look back at the terminal with the secure server running and you should see
 </p>
 </br></br></br>
 
+**Lab 4 - Building a Customer Support Classification MCP Server**
 
-**Lab 4 - Best Practices and Patterns for using MCP in Agents**
+**Purpose: In this lab, we'll build an MCP server that uses classifications and prompt templates for OmniTech customer support. The server will index the OmniTech knowledge base PDFs and provide RAG-based support for common customer queries.**
 
-**Purpose: In this lab, we'll look at some best practices and patterns in implementing MCP in an agent.**
+1. First, let's understand what we're building. The classification approach for customer support:
+   - **Server**: Support query catalog, PDF indexing, knowledge retrieval, prompt templates
+   - **Client**: LLM execution, workflow orchestration, response generation
 
-1. Change into the *lab4* directory in a terminal (and in any other terminals you use along the way).
-   
-```
-cd ../lab4
-```
+   This creates a production-ready customer support system - just update server configuration to add new support categories.
 
-2. For this lab, we need to make sure our local ollama server is running to serve the local llama3.2 LLM we'll be using. Check this by running the command below. If you see the output shown in the screenshot, you're good. Otherwise, if you see a message that Ollama is not running, you can start it with the command "ollama serve &".
+<br><br>
 
-```
-ollama list
-```
-</br></br>
-![Checking Ollama](./images/mcp48-new.png?raw=true "Checking Ollama")
-
-3. In this directory, we have two partially implemented files - one for an MCP server named [**lab4/mcp_server.py**](./lab4/mcp_server.py) and one for an agent that uses the MCP server - named [**lab4/mcp_client_agent.py**](./lab4/mcp_client_agent.py). The agent takes input text and then allows you to choose to have the text summarized, expanded or reworded by picking which option you want.
-</br></br>
-To complete the implementation in each of these files, we're going to use an approach of doing a side-by-side diff of the completed code with our partial code and then merging the changes in to complete the implementation. Let's start with the server build-out by using the command below. 
+2. We have a skeleton file for our new classification server that shows the structure. Let's examine it and then build it out using our familiar diff-and-merge approach.
 
 ```
-code -d ../extra/mcp_server.txt mcp_server.py
+code -d extra/mcp_server_solution.txt mcp_server_classification.py
 ```
 
-4. Once you have run the command, you'll have a side-by-side view in your editor of the completed code and the mcp_server.py file. You can merge each section of code into the mcp_server.py file by hovering over the middle bar and clicking on the arrows pointing right. Go through each section, look at the code, and then click to merge the changes in, one at a time.
+![Updating the MCP server](./images/aiapps21.png?raw=true "Updating the MCP server") 
 
-![Side-by-side merge](./images/mcp70.png?raw=true "Side-by-side merge") 
+<br><br>
 
-5. When you have finished merging all the sections in, the files should show no differences. Save the changes simply by clicking on the "X" in the tab name.
+3. As you review the differences, note the key components:
+   - **CANONICAL_QUERIES**: A catalog of customer support query types:
+     * `account_security`: Password resets, 2FA, account recovery
+     * `device_troubleshooting`: Technical issues and device problems
+     * `shipping_inquiry`: Order tracking and delivery information
+     * `returns_refunds`: Return policies and warranty claims
+     * `general_support`: General customer assistance
+   - **PDF Indexing**: Automatic indexing of OmniTech knowledge base PDFs on startup
+   - **Classification tools**: `classify_canonical_query()` matches customer questions to support categories
+   - **Knowledge retrieval**: `vector_search_knowledge()` and `get_knowledge_for_query()` for RAG
+   - **Template tools**: `get_query_template()` returns customer support prompts
 
-![Merge complete](./images/mcp71.png?raw=true "Merge complete") 
+<br><br>
 
-6. Now you can run your server with the following command:
+4. Merge each section by clicking the arrows. Pay attention to:
+   - How customer support queries are defined with category-specific templates
+   - The PDF indexing process that runs automatically on startup
+   - How each support category searches only relevant PDF documents
+   - The keyword matching logic that identifies support intent
+   - How templates use `{knowledge}` placeholder for retrieved documentation
 
-```
-python mcp_server.py
-```
+<br><br>
 
-7. Switch to another terminal and repeat the same process with the *mcp_client_agent.py* file. Review and merge in the changes, then save the changes by closing the tab at the top. Note in the code that tool names and model names and prompts are used as resources from the server, but LLM interaction is done in the client - as we would expect for a *real* agent.
-
-```
-cd ../lab4 
-code -d ../extra/mcp_client_agent.txt mcp_client_agent.py
-```
-</br></br>
-![Side-by-side merge](./images/mcp73.png?raw=true "Side-by-side merge")
-
-8. Once you've completed the merge and closed the tab, run the client and select one of the commands and enter some text for it. For example you might select the "*expand*" command and then enter some basic text like "*MCP stands for Model Context Protocol*." After a few moments you should see some output from the client. What's worth noticing here is the *REQUEST* and *RETURN* lines that print out in the server side showing requests and results for getting resources and prompts. **This will take a long time to run, so you can just leave it running while we move on.**
-
-```
-python mcp_client_agent.py
-```
-
-![Trying out the client](./images/mcp74-new.png?raw=true "Trying out the client")
-
-9. (Optional) Start up the MCP explorer again and see the resources in the server. To do this, you'll need to start a new instance of the explorer. If the old one is running, you can close/stop it.  Then run the command below again to start a new instance. (Remember to adjust the path if you're not in /workspaces/mcp.)
+5. When finished merging, save the file by closing the tab. Now start the new server:
 
 ```
-python scripts/mcp_explorer.py http://localhost:8000/mcp 5000
+python mcp_server_classification.py
 ```
 
-![Starting the inspector](./images/mcp109.png?raw=true "Starting the inspector")
+![Running the MCP server](./images/aiapps7.png?raw=true "Running the MCP server") 
 
-10. (Optional) If you did step 9, and got the server connected, you can click on the *Prompts* item in the top row and tell it to list the prompts. If you choose to *Get Prompt*, you can use JSON like in the text below. You can also look at the resource with the model name, via the *Resources* option at the top. Finally, if you look at the *Tools* from the server, keep in mind that these are just wrappers around the prompts and won't actually change any text you enter.
+<br><br>
+
+6. The server should start and initialize its knowledge base. **This will take awhile to index the PDFs and be ready.** You'll see:
+
+   - Loading of the embedding model (all-MiniLM-L6-v2)
+   - Initialization of ChromaDB at ./mcp_chroma_db
+   - **PDF Indexing**: Automatic indexing of OmniTech knowledge base:
+     * Account Security Handbook
+     * Device Troubleshooting Manual
+     * Global Shipping Logistics
+     * Returns Policy 2024
+   - Creation of vector collection with categorized chunks
+
+   The server now provides customer support tools:
+   - **Knowledge Search** : RAG-based semantic search through PDFs
+   - **Classification** : Support query intent classification
+   - **Templates** : Customer support prompt templates
+   - **Knowledge Retrieval** : Category-specific documentation retrieval
+   - **Weather** : Weather tools (kept from previous labs)
+
+
+![Running the MCP server](./images/aiapps8.png?raw=true "Running the MCP server") 
+
+<br><br>
+
+7. Understanding the knowledge base architecture:
+    - The MCP server owns and manages the entire knowledge base
+    - All OmniTech PDFs are automatically indexed into ChromaDB
+    - Each document chunk is categorized (security, troubleshooting, shipping, returns)
+    - Semantic search enables intelligent answer retrieval
+    - Multiple support agents can share the same knowledge base
+
+Let's see the list of tools the MCP server makes available. Run the discovery tool again.
 
 ```
-{"text": "This is a long paragraph that I want to summarize into one sentence."}
+python tools/discover_tools.py
 ```
 
-![Running the inspector](./images/mcp114.png?raw=true "Running the inspector")
+<br><br>
 
-Here's the prompt result if you used the previous entry.
+8.  You should see several customer support tool categories:
+   - **Knowledge search tools**: `vector_search_knowledge`, `get_knowledge_for_query`
+   - **Classification tools**: `classify_canonical_query`, `get_query_template`, `list_canonical_queries`
+   - **Support categories**: Tools for each support type (security, troubleshooting, shipping, returns)
+   - **Validation tools**: `validate_query_parameters`
+   - **Weather tools**: `get_weather`, `geocode_location` (kept from previous labs)
 
-![Running the inspector](./images/mcp115.png?raw=true "Running the inspector")
+![Discover tools](./images/aiapps22.png?raw=true "Discover tools") 
 
-11. When done, you can stop the server via CTRL+C and the client via typing "exit" at a prompt. And you can close the Explorer tab if you did the optional exercises.
+<br><br>
 
+9. The server is now ready to handle customer support queries using the OmniTech knowledge base. It can classify support requests, retrieve relevant documentation, and provide structured templates for consistent responses. In the next lab, we'll build an agent that leverages these capabilities, so you can leave it running.
 
- <p align="center">
+<p align="center">
 **[END OF LAB]**
 </p>
-</br></br></br>
+</br></br>
 
-**Lab 5 - Connecting Applications to MCP Servers**
+**Lab 5 - Building a Customer Support RAG Agent**
+
+**Purpose: In this lab, we'll build a customer support agent that uses the classification server from Lab 4. This agent demonstrates the 4-step support workflow: classify → template → retrieve knowledge → execute.**
+
+1.  Let's build out the customer support agent using our skeleton file. This agent demonstrates a **production RAG architecture** where:
+   - The MCP server owns all knowledge (vector DB, PDFs, embeddings)
+   - The agent is pure orchestration (no local files, no local vector DB)
+   - Support queries are classified and answered using the OmniTech knowledge base
+   - Direct RAG search handles exploratory questions
+
+   This represents best practices for production customer support systems with clear separation of concerns.
+
+```
+code -d extra/rag_agent_solution.txt rag_agent_classification.py
+```
+
+![Updating the RAG agent](./images/aiapps10.png?raw=true "Updating the RAG agent") 
+
+<br><br>
+
+2. As you review and merge the differences, observe the key architectural patterns:
+   - **Simplified imports**: No chromadb, pdfplumber, or sentence-transformers needed
+   - **MCP-centric knowledge access**: All documentation comes from MCP server
+   - **Query routing**: Keywords determine support category vs. exploratory search
+   - **Support workflow**: 4-step process (classify → template → retrieve knowledge → execute)
+   - **RAG workflow**: Direct semantic search through knowledge base
+   - **Local LLM execution**: Agent only runs the LLM, knowledge comes from server
+
+<br><br>
+
+3.  Merge each section carefully. Notice two key functions:
+   - `handle_canonical_query_with_classification()`: Orchestrates the 4-step support workflow for classified queries
+   - `handle_rag_search()`: Performs direct semantic search for exploratory questions
+
+   The agent has no local file reading, no embeddings, no vector database - everything comes from MCP.
+
+<br><br>
+
+4. When finished merging, save the file. Make sure your classification server from Lab 4 is still running (if not, restart it).
+
+<br><br>
+
+5. Now start the classification agent in a second terminal:
+
+```
+python rag_agent_classification.py
+```
+
+<br><br>
+
+6. The agent will start and explain that it uses the OmniTech knowledge base for customer support. You can try out some of the queries shown below. Note that some may take multiple minutes to process and respond.
+
+**Account Security Questions:**
+```
+How do I reset my password?
+Can you help me set up two-factor authentication?
+What should I do if my account is compromised?
+```
+
+**Device Troubleshooting:**
+```
+My device won't turn on, what should I do?
+How do I perform a factory reset?
+The screen is frozen, how can I fix it?
+```
+
+**Shipping & Orders:**
+```
+When will my order arrive?
+Do you ship internationally?
+How can I track my package?
+```
+
+**Returns & Refunds:**
+```
+What is your return policy?
+How long do I have to return a product?
+Is my device still under warranty?
+```
+
+![Running the RAG agent](./images/aiapps41.png?raw=true "Running the RAG agent") 
+
+<br><br>
+
+7. Observe the workflow differences:
+
+    **Classified Support Queries** ("How do I reset my password?"):
+    - Agent calls MCP's `classify_canonical_query(...)`
+    - MCP returns: "account_security"
+    - Agent calls `get_query_template("account_security")`
+    - Agent calls `get_knowledge_for_query("account_security", "password reset")`
+    - MCP searches only security-related documentation
+    - Agent executes LLM locally with template + knowledge
+
+    **Direct RAG Search** ("Tell me about your products"):
+    - Agent calls MCP's `vector_search_knowledge("products")`
+    - MCP performs semantic search across all PDFs
+    - Returns relevant documentation chunks
+    - Agent synthesizes response from retrieved knowledge
+
+    **Category-Specific Search**:
+    - Security queries search only Account Security Handbook
+    - Troubleshooting queries search Device Manual
+    - Shipping queries search Logistics documentation
+    - Returns queries search Returns Policy
+
+<br><br>
+
+8. Notice the architectural benefits:
+   - **Classified queries**: Use category-specific search for accurate, focused answers
+   - **RAG search**: Semantic search across entire knowledge base for exploratory questions
+   - **No duplication**: MCP server owns all knowledge, agent is pure orchestration
+   - **Scalability**: Multiple support agents can share the same knowledge base
+   - **Consistency**: Templates ensure uniform support responses
+   - **Maintainability**: Update PDFs on server, all agents get new knowledge
+
+   This centralized architecture follows best practices for production customer support systems.
+
+  The power of this architecture is that you can add new support categories or update documentation just by modifying the server - no agent code changes needed. Type 'exit' when done to stop the agent.
+
+
+
+<p align="center">
+**[END OF LAB]**
+</p>
+</br></br>
+
+
+**Lab 6 - Connecting Applications to MCP Servers**
 
 **Purpose: In this lab, we'll see how to connect GitHub Copilot to the GitHub MCP Server.**
 
