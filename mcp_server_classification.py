@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+─────────────────────────────────────────────────────────────────────
+Lab 4: Building a Customer Support Classification MCP Server
 
 """
 
@@ -21,8 +23,6 @@ from sentence_transformers import SentenceTransformer
 # ╚══════════════════════════════════════════════════════════════════╝
 
 # Paths to OmniTech knowledge base
-KNOWLEDGE_BASE_DIR = Path("knowledge_base_pdfs")
-CHROMA_PATH = Path("./mcp_chroma_db")
 
 # Document categories for targeted search
 DOCUMENT_CATEGORIES = {
@@ -63,14 +63,20 @@ def _get_chroma_collection() -> chromadb.Collection:
     return _knowledge_collection
 
 def _index_knowledge_base():
-    """Index OmniTech PDFs into ChromaDB if not already indexed."""
-    collection = _get_chroma_collection()
+    global _chroma_client, _knowledge_collection
 
-    # Check if already indexed
-    if collection.count() > 0:
-        print(f"✅ Knowledge base already indexed ({collection.count()} chunks)")
-        return
+    # Check if ChromaDB already exists with data
+    if CHROMA_PATH.exists():
+        # Temporarily connect to check if already indexed
+        collection = _get_chroma_collection()
+        if collection.count() > 0:
+            print(f"✅ Knowledge base already indexed ({collection.count()} chunks)")
+            return
+        # Reset caches since indexing will recreate the database
+        _chroma_client = None
+        _knowledge_collection = None
 
+    # Run the indexing tool
     print("📚 Indexing OmniTech knowledge base PDFs...")
     if not INDEX_TOOL_PATH.exists():
         print(f"❌ Index tool not found at {INDEX_TOOL_PATH}")
@@ -81,25 +87,53 @@ def _index_knowledge_base():
         return
 
     try:
+        cmd = [
+        ]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
 
+        # Always show output for debugging
+        if result.stdout:
+            print("📝 Indexing output:")
+            for line in result.stdout.strip().split('\n'):
+                print(f"   {line}")
+        if result.stderr:
+            # Check if it's actually errors or just info logs
+            stderr_lines = result.stderr.strip().split('\n')
+            has_error = any('ERROR' in line or 'Exception' in line for line in stderr_lines)
+
+            if has_error:
+                print("⚠️ Indexing errors:")
+            else:
+                print("📋 Indexing logs:")
+
+            for line in stderr_lines:
+                print(f"   {line}")
+
         if result.returncode == 0:
-            print("✅ Successfully indexed knowledge base")
-            # Refresh collection count
+            print("✅ Indexing subprocess returned success")
+            # Refresh both client and collection to see subprocess changes
+            _chroma_client = None
             _knowledge_collection = None
             collection = _get_chroma_collection()
+            print(f"📊 After indexing, collection has {collection.count()} documents")
         else:
-            print(f"❌ Indexing failed: {result.stderr}")
+            print(f"❌ Indexing failed (exit code {result.returncode})")
     except Exception as e:
         print(f"❌ Error running index tool: {e}")
 
+# ╔══════════════════════════════════════════════════════════════════╗
+# 2. Canonical Query Definitions for Customer Support                ║
+# ╚══════════════════════════════════════════════════════════════════╝
 
 CANONICAL_QUERIES = {
     "account_security": {
     },
 
     "device_troubleshooting": {
+    },
+
+    "shipping_inquiry": {
     },
 
     "returns_refunds": {
@@ -109,10 +143,11 @@ CANONICAL_QUERIES = {
 }
 
 # ╔══════════════════════════════════════════════════════════════════╗
+# 3. FastMCP Server and Tools                                        ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
-mcp = FastMCP("OmniTechSupportServer")
 
+# ─── Query Classification Tools ───────────────────────────────────
 
 @mcp.tool
 def list_canonical_queries() -> dict:
@@ -130,6 +165,7 @@ def list_canonical_queries() -> dict:
 
 @mcp.tool
 def classify_canonical_query(user_query: str) -> dict:
+    """
     """
     user_lower = user_query.lower()
     scores = {}
@@ -162,7 +198,6 @@ def classify_canonical_query(user_query: str) -> dict:
                 similarity = overlap / max(len(example_words), len(user_words))
                 scores[query_name] = max(scores.get(query_name, 0), similarity)
 
-    # Find best match
     if not scores or max(scores.values()) == 0:
         # Default to general support
         return {
@@ -172,8 +207,9 @@ def classify_canonical_query(user_query: str) -> dict:
             "reason": "No specific category matched, routing to general support"
         }
 
+    best_query = max(scores, key=scores.get)
+    confidence = min(scores[best_query], 1.0)
 
-    # Get alternatives
     alternatives = [
         {"query": name, "score": score}
         for name, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -203,10 +239,7 @@ def get_query_template(query_name: str) -> dict:
 
 # ─── Knowledge Retrieval Tools (RAG) ─────────────────────────────
 
-@mcp.tool
-def vector_search_knowledge(query: str, top_k: int = 5, category: str = None) -> dict:
-    """
-    """
+def _vector_search_knowledge_internal(query: str, top_k: int = 5, category: str = None) -> dict:
     try:
         embed_model = _get_embed_model()
         collection = _get_chroma_collection()
@@ -223,11 +256,8 @@ def vector_search_knowledge(query: str, top_k: int = 5, category: str = None) ->
         where_clause = None
         if category and category in DOCUMENT_CATEGORIES:
             pdf_names = DOCUMENT_CATEGORIES[category]
-            where_clause = {"source": {"$in": [f"knowledge_base_pdfs/{pdf}" for pdf in pdf_names]}}
+            where_clause = {"source": {"$in": pdf_names}}
 
-        # Search
-        results = collection.query(
-        )
 
         matches = []
         if results["documents"] and results["documents"][0]:
@@ -252,6 +282,12 @@ def vector_search_knowledge(query: str, top_k: int = 5, category: str = None) ->
         return {"error": str(e)}
 
 @mcp.tool
+def vector_search_knowledge(query: str, top_k: int = 5, category: str = None) -> dict:
+    """
+    """
+    return _vector_search_knowledge_internal(query, top_k, category)
+
+@mcp.tool
 def get_knowledge_for_query(category: str, query: str, top_k: int = 3) -> dict:
     """
     Get relevant knowledge for a specific support category and query.
@@ -273,8 +309,6 @@ def get_knowledge_for_query(category: str, query: str, top_k: int = 3) -> dict:
         {"knowledge": concatenated relevant text, "sources": list of sources}
     """
     try:
-        # Use vector search with category filter
-        search_result = vector_search_knowledge(query, top_k=top_k, category=category)
 
         if "error" in search_result:
             return search_result
@@ -313,7 +347,6 @@ def validate_support_query(query: str) -> dict:
             "suggestions": ["Please provide more details about your issue"]
         }
 
-    # Check for inappropriate content (simplified check)
     inappropriate_words = ["hack", "exploit", "illegal", "crack"]
     query_lower = query.lower()
 
@@ -333,16 +366,8 @@ def validate_support_query(query: str) -> dict:
 
 # ─── Statistics Tools ─────────────────────────────────────────────
 
-@mcp.tool
-def get_knowledge_base_stats() -> dict:
-    """
-    Get statistics about the indexed knowledge base.
-
-    Returns
-    -------
-    dict
-        {"total_chunks": int, "documents": dict, "status": str}
-    """
+def _get_knowledge_base_stats_internal() -> dict:
+    """Internal function to get knowledge base statistics."""
     try:
         collection = _get_chroma_collection()
 
@@ -370,6 +395,18 @@ def get_knowledge_base_stats() -> dict:
         }
     except Exception as e:
         return {"error": str(e)}
+
+@mcp.tool
+def get_knowledge_base_stats() -> dict:
+    """
+    Get statistics about the indexed knowledge base.
+
+    Returns
+    -------
+    dict
+        {"total_chunks": int, "documents": dict, "status": str}
+    """
+    return _get_knowledge_base_stats_internal()
 
 # ╔══════════════════════════════════════════════════════════════════╗
 # 4. Server Startup                                                  ║
@@ -404,7 +441,7 @@ if __name__ == "__main__":
         print(f"  • {name}: {config['description']}")
 
     print("\nKnowledge Base Documents:")
-    stats = get_knowledge_base_stats()
+    stats = _get_knowledge_base_stats_internal()
     if "documents" in stats:
         for doc, count in stats["documents"].items():
             print(f"  • {doc}: {count} chunks")
@@ -412,5 +449,3 @@ if __name__ == "__main__":
 
     print("\nServer endpoint: POST http://127.0.0.1:8000/mcp/")
     print("=" * 70 + "\n")
-
-    mcp.run(transport="http", host="127.0.0.1", port=8000, path="/mcp/")
