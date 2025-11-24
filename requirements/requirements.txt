@@ -13,3 +13,4 @@ langgraph
 langchain_mcp_adapters
 python-jose
 sentence-transformers
+pymupdf
