@@ -8,8 +8,8 @@ python3 -m venv ./$PYTHON_ENV \
 
 source ./$PYTHON_ENV/bin/activate
 
-if [ -f "./requirements.txt" ]; then
-  pip3 install -r "./requirements.txt"
+if [ -f "./requirements/requirements.txt" ]; then
+  pip3 install -r "./requirements/requirements.txt"
 else
-  pip3 install -r "/workspaces/ato-agents/requirements/requirements.txt"
+  pip3 install -r "/workspaces/aia-day2-b/requirements/requirements.txt"
 fi
