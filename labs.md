@@ -1,7 +1,7 @@
-# Understanding MCP (Model Context Protocol) - A hands-on guide
-## Understanding how AI agents can connect to the world
+# Enterprise AI Accelerator Workshop
+## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 3.00 - 10/27/25
+## Revision 1.0 - 11/24/25
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -331,10 +331,10 @@ curl -i -X POST http://127.0.0.1:8000/mcp \
      -d '{"jsonrpc":"2.0","id":2,"method":"add","params":{"a":1,"b":1}}'
 ```
 </br></br>
-Then look back at the terminal with the secure server running and you should see an error message.
+Then look back at the body of the response from running that, you should see an error message.
 </br></br>
 
-![Invalid token](./images/mcp63.png?raw=true "Invalid token") 
+![Invalid token](./images/aia-2-30.png?raw=true "Invalid token") 
 
 </br></br>
 
