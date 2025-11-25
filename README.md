@@ -33,33 +33,11 @@ The codespace is ready to use when you see a prompt like the one shown below in 
 
 <br><br>
 
-**4. Run setup script to finalize the installation.**
-
-In the codespace *TERMINAL* panel at the bottom, run the following command.
-
-```
-scripts/setup.sh
-```
-
-This will setup the python environment, install needed python pieces, install Ollama, and then download the model we will use. This will take several more minutes to run. 
-
-![Final prep](./images/mcp89.png?raw=true "Final prep")
-
-<br><br>
-
-**5. Open a new terminal.**
-
-When the script is completed (after a long run), you can just click on the "+" sign on the far right to get a new terminal with the provided Python environment to work in.
-
-![New terminal](./images/atoa3.png?raw=true "New terminal")
-
-<br><br>
-
-**6. Open the labs file.**
+**4. Open the labs file.**
 
 You can open the [labs.md](./labs.md) file either in your codespace or in a separate browswer tab/instance.**
 
-![Labs](./images/mcp78.png?raw=true "Labs")
+![Labs](./images/aia-2-35.png?raw=true "Labs")
 
 <br>
 
