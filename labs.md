@@ -355,10 +355,10 @@ Then look back at the body of the response from running that, you should see an 
 
    This creates a production-ready customer support system - just update server configuration to add new support categories.
 
-   First, change into the directory for lab4.
+   First, change back to the root directory of the project if not there.
 
 ```
-cd lab4
+cd /workspaces/aia-day2-b
 ```
 
 <br><br>
@@ -366,7 +366,7 @@ cd lab4
 2. We have a skeleton file for our new classification server that shows the structure. Let's examine it and then build it out using our familiar diff-and-merge approach.
 
 ```
-code -d ../extra/mcp_server_support_solution.txt mcp_server_classification.py
+code -d extra/mcp_server_support_solution.txt mcp_server_classification.py
 ```
 
 <br>
