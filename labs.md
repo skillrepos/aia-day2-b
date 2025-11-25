@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.1 - 11/24/25
+## Revision 1.2 - 11/25   /25
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -68,19 +68,31 @@ npx -y @wrtnlabs/calculator-mcp@latest --port 8931
 ![Running remote MCP server](./images/mcp5.png?raw=true "Running remote MCP server")
 <br><br>
 
+
 6. Now, let's open an additional terminal so we can run our custom code. You can use the "+" control in the upper right of the terminal to add a new terminal or just split the terminal. As shown here, we're splitting the terminal by clicking on the "down arrow" to the immediate right of the plus and selecting *Split terminal*.
 
 ![Splitting terminal](./images/mcp96.png?raw=true "Splitting terminal")
 <br><br>
 
-7. Let's see how we can create a minimal client to use the MCP server. Create a new file called *mpc_client.py* with the first command. We'll add code for this in the next step.
+7. We have a small program that uses a MCP client to connect to a server and display information about available tools from the server. Let's use it to see what functions this MCP server provides. It assumes localhost and takes a port and transport as arguments. Run it with the command below:
+
+```
+python ../tools/discover_tools.py  8931 sse
+```
+
+![Discovering tools](./images/aia-2-38.png?raw=true "Discovering tools")
+
+<br><br>
+
+
+8. Next, let's see how we can create a minimal client to use the MCP server. Create a new file called *mpc_client.py* with the first command. We'll add code for this in the next step.
 
 ```
 code mcp_client.py
 ```
 </br></br>
 
-8. Now paste the code below into the file. Make sure to save your changes when done.
+9. Now paste the code below into the file. Make sure to save your changes when done.
 
 ```
 import asyncio
@@ -103,7 +115,7 @@ if __name__ == "__main__":
 ```
 <br><br>
 
-9. Notice that within this code we didn't have to code in endpoint formats, juggle query strings, or handcraft JSON schemas. Also, the server advertises all tools dynamically. In the second terminal, run the client with the command below and you should see output similar to the screenshot below. 
+10. Notice that within this code we didn't have to code in endpoint formats, juggle query strings, or handcraft JSON schemas. Also, the server advertises all tools dynamically. In the second terminal, run the client with the command below and you should see output similar to the screenshot below. 
 
 ```
 python mcp_client.py
@@ -112,7 +124,7 @@ python mcp_client.py
 ![Running client](./images/mcp7-new.png?raw=true "Running client")
 </br></br>
 
-10. Finally, let's create a simple agent implementation that uses tools from this server in conjunction with a local LLM to respond to a prompt. To save time, we already have the code for the agent in the file *agent_mcp.py*. You can browse the code to see what it is doing.To make it easier to see the **differences from the simple client**, run the command below and you can scroll down through the differences. *Do not make any changes in the files here.* When done, just click the "X" in the tab at the top to close this view.
+11. Finally, let's create a simple agent implementation that uses tools from this server in conjunction with a local LLM to respond to a prompt. To save time, we already have the code for the agent in the file *agent_mcp.py*. You can browse the code to see what it is doing.To make it easier to see the **differences from the simple client**, run the command below and you can scroll down through the differences. *Do not make any changes in the files here.* When done, just click the "X" in the tab at the top to close this view.
 
 ```
 code -d mcp_client.py agent_mcp.py
@@ -121,7 +133,7 @@ code -d mcp_client.py agent_mcp.py
 ![Diff view](./images/mcp80.png?raw=true "Diff view")
 </br></br>
 
-11. Now, you can run the agent to see it in action. When this runs, it will show you the LLM's output and also the various tool calls and results. Note that it will take a while for the LLM to process things since it is running against a local model in our codespace. Also, since we are not using a very powerful or tuned model here, it is possible that you will see a mistake in the final output. If so, try running the agent code again. (Notice that we are using a different problem this time: 12x8/3)
+12. Now, you can run the agent to see it in action. When this runs, it will show you the LLM's output and also the various tool calls and results. Note that it will take a while for the LLM to process things since it is running against a local model in our codespace. Also, since we are not using a very powerful or tuned model here, it is possible that you will see a mistake in the final output. If so, try running the agent code again. (Notice that we are using a different problem this time: 12x8/3)
 
 ```
 python agent_mcp.py
@@ -130,7 +142,7 @@ python agent_mcp.py
 ![Running agent](./images/mcp81.png?raw=true "Running agent")
 </br></br>
 
-12. You can stop the MCP server in the original terminal via CTRL-C.
+You can stop the MCP server in the original terminal via CTRL-C.
 
 <p align="center">
 <b>[END OF LAB]</b>
@@ -404,7 +416,7 @@ As you review the differences, note the key components:
 python mcp_server_classification.py
 ```
 
-![Running the MCP server](./images/aiapps7.png?raw=true "Running the MCP server") 
+![Running the MCP server](./images/aia-2-33.png?raw=true "Running the MCP server") 
 
 <br><br>
 
@@ -428,21 +440,21 @@ python mcp_server_classification.py
    - **Statistics** : Knowledge base statistics
   
 
-![Running the MCP server](./images/aia-2-33.png?raw=true "Running the MCP server") 
+![Running the MCP server](./images/aia-2-32.png?raw=true "Running the MCP server") 
 
 <br><br>
 
-6. Understanding the knowledge base architecture:
+6. Here's the knowledge base architecture:
     - The MCP server owns and manages the entire knowledge base
     - All OmniTech PDFs are automatically indexed into ChromaDB
     - Each document chunk is categorized (security, troubleshooting, shipping, returns)
     - Semantic search enables intelligent answer retrieval
     - Multiple support agents can share the same knowledge base
 
-Let's see the list of tools the MCP server makes available. In a separate terminal, run the discovery tool again.
+Let's see the list of tools the MCP server makes available. We can run the discover tool again for this.  Run it in a separate terminal as shown below (adjust the path if needed).
 
 ```
-python tools/discover_tools.py
+python tools/discover_tools.py 8000 mcp
 ```
 
 <br><br>
@@ -453,7 +465,7 @@ python tools/discover_tools.py
    - **Validation tools**: `validate_support_query`
    - **Statistics tools**: `get_knowledge_base_stats`
 
-![Discover tools](./images/aia-2-34.png?raw=true "Discover tools") 
+![Discover tools](./images/aia-2-39.png?raw=true "Discover tools") 
 
 <br><br>
 
