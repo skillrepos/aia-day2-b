@@ -190,7 +190,7 @@ python scripts/mcp_explorer.py http://localhost:8000/mcp 5000
 ![Prompt](./images/mcp104.png?raw=true "Prompt") 
 <br><br>
 
-6. Click *OK* and you'll see the prompt result (with your argument) displayed.
+6. Click *OK* and you'll see the prompt result (with your argument) displayed. Click OK when done.
 
 ![Completed prompt](./images/mcp105.png?raw=true "Completed prompt") 
 <br><br>
