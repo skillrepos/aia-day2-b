@@ -1,196 +1,196 @@
-# mcp_client_agent.py – FastMCP 2.11.x & Ollama, robust + timeouts + retries
-import asyncio, json, typing
-import httpx
+import asyncio
+import re
 
-from fastmcp import Client
-
-# ANSI color codes for terminal output
-BLUE = "\033[94m"     # Bright blue for requests
-GREEN = "\033[92m"    # Bright green for responses
-RESET = "\033[0m"     # Reset color
-
-# MCP server endpoint (streamable HTTP)
-SERVER_URL = "http://127.0.0.1:8000/mcp/"
-
-# Ollama chat endpoint
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+from langchain_ollama import ChatOllama
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 
 
-async def call_ollama(system_prompt: str, user_input: str, model: str) -> str:
-    """Call Ollama /api/chat with a simple system+user exchange."""
-    # Longer timeouts for CPU-only cold starts (Codespaces).
-    timeout = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
-    limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
-    async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
-        payload = {
-            "model": model,
-            # Treat the rendered prompt as the user message (pre-baked instruction + text)
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input},
-            ],
-            "stream": False,
-        }
+# -----------------------------------------------------------------------------
+# Helper: extract the final numeric value from a sentence-like tool response.
+#
+# Your CalcMCP tools may return text like:
+#   "The product of 12 and 8 is 96"
+# We want to pull out "96" so we can feed clean numbers back into later tool calls.
+# -----------------------------------------------------------------------------
+def last_number(text: str) -> str:
+    nums = re.findall(r"-?\d+(?:\.\d+)?", text)
+    return nums[-1] if nums else text
 
-        # Retry on cold starts / transient failures
-        attempts = 0
-        last_exc = None
-        while attempts < 4:
-            try:
-                resp = await client.post(OLLAMA_URL, json=payload)
-                resp.raise_for_status()
-                break
-            except (httpx.TimeoutException, httpx.ConnectError) as e:
-                last_exc = e
-                attempts += 1
-                await asyncio.sleep(1.5 * attempts)
-                continue
-            except httpx.HTTPStatusError as e:
-                if 500 <= e.response.status_code < 600 and attempts < 3:
-                    last_exc = e
-                    attempts += 1
-                    await asyncio.sleep(1.5 * attempts)
-                    continue
-                raise
-        if attempts >= 4 and last_exc:
-            raise last_exc
 
-        data = resp.json()
+# -----------------------------------------------------------------------------
+# Helper: normalize the MCP tool response to plain text.
+#
+# Many MCP servers return "content blocks" like:
+#   [{'type': 'text', 'text': '...'}]
+# This function grabs the text content (or falls back to str(...)).
+# -----------------------------------------------------------------------------
+def tool_text(result) -> str:
+    if isinstance(result, list) and result and isinstance(result[0], dict) and "text" in result[0]:
+        return result[0]["text"]
+    return str(result)
 
-        # Ollama native response: {"message": {"content": "..."}}
-        if isinstance(data, dict) and "message" in data and isinstance(data["message"], dict):
-            return data["message"].get("content", "") or ""
 
-        # OpenAI-compatible fallback: {"choices": [{"message": {"content": "..."}}]}
-        if isinstance(data, dict) and "choices" in data:
-            choices = data["choices"]
-            if choices and isinstance(choices[0], dict):
-                msg = choices[0].get("message", {})
-                if isinstance(msg, dict):
-                    return msg.get("content", "") or ""
-
-        return ""
+# -----------------------------------------------------------------------------
+# Helper: pretty-print tool arguments for the trace output.
+# (Purely for display; does not affect the actual tool call.)
+# -----------------------------------------------------------------------------
+def format_args(args: dict) -> str:
+    out = {}
+    for k, v in (args or {}).items():
+        if isinstance(v, str) and v.isdigit():
+            out[k] = int(v)
+        else:
+            out[k] = v
+    return str(out)
 
 
 async def main():
-    async with Client(SERVER_URL) as client:
-        # Discover prompts/tools (support wrapper objects OR raw lists)
-        prompt_list = await client.list_prompts()
-        tool_list = await client.list_tools()
+    # =========================================================================
+    # 1) Connect to the MCP server and discover its tools
+    # =========================================================================
+    # MultiServerMCPClient lets you define one or more MCP servers by name.
+    # Here we register a single server called "CalcMCP" which exposes add/mul/div/etc.
 
-        prompts = getattr(prompt_list, "prompts", prompt_list)
-        tools = getattr(tool_list, "tools", tool_list)
+    client = MultiServerMCPClient({
+        "CalcMCP": {
+            "url": "http://127.0.0.1:8931/sse",
+            "transport": "sse",
+        }
+    })
 
-        def _name(x):
-            return getattr(x, "name", x.get("name") if isinstance(x, dict) else str(x))
+    # Ask the MCP server what tools it exposes.
+    # This returns LangChain tool objects that can be invoked with .ainvoke(...)
 
-        prompt_names = [_name(p) for p in prompts]
-        tool_names = [_name(t) for t in tools]
+    tools = await client.get_tools()
 
-        print(f"{BLUE}Available prompts: {', '.join(prompt_names)}{RESET}")
-        print(f"{BLUE}Available tools: {', '.join(tool_names)}{RESET}\n")
+    # Create a simple lookup table so we can call tools by name.
+    tool_by_name = {t.name: t for t in tools}
 
-        # Request model resource from server (robust to varying shapes)
-        model_res = await client.read_resource("resource://model")
+    print("Discovered tools:", list(tool_by_name.keys()))
 
-        def _as_text(content):
-            if hasattr(content, "text"):
-                return content.text
-            if isinstance(content, dict) and "text" in content:
-                return content["text"]
-            if isinstance(content, str):
-                return content
-            return json.dumps(content)
+    # =========================================================================
+    # 2) Create an LLM that knows how to "call tools"
+    # =========================================================================
+    # ChatOllama is your local LLM runner.
+    # .bind_tools(tools) tells the model which tool "schemas" it is allowed to call.
 
-        first = model_res[0] if isinstance(model_res, (list, tuple)) and model_res else model_res
-        model_json = json.loads(_as_text(first))
-        model_name = model_json.get("model", "llama3.2:latest")
+    llm = ChatOllama(model="llama3.2").bind_tools(tools)
 
-        print(f"{BLUE}Model name used for Ollama: {model_name!r}{RESET}")
+    # This is the "system message" that sets the rules of behavior.
+    # We emphasize: use tools for math, no nesting, and sequential steps.
 
-        # Optional one-time warm-up to avoid first interactive timeout
-        try:
-            print(f"{BLUE}Warming up Ollama model {model_name}...{RESET}")
-            _ = await call_ollama(
-                system_prompt="You are a helpful assistant.",
-                user_input="Reply with 'ready'.",
-                model=model_name,
+    system_prompt = (
+        "You are a math assistant.\n"
+        "You must use tools for all calculations.\n"
+        "Never nest tool calls.\n"
+        "If multiple steps are needed, call tools in sequence.\n"
+        "When you use a tool result, use the numeric value from the tool result.\n"
+    )
+
+    # User question. This requires at least two steps: mul(12,8) then div(96,3).
+    user_prompt = "What’s 12×8 / 3 ?"
+
+    # messages is the full conversation history:
+    # - System instructions
+    # - User question
+    # - LLM tool-call messages
+    # - Tool result messages
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt),
+    ]
+
+    # =========================================================================
+    # 3) Tool-execution loop (the "agent" behavior)
+    # =========================================================================
+    # We repeatedly:
+    #   A) Ask the model what to do next
+    #   B) If it requests tool calls, we run them
+    #   C) We feed tool results back as ToolMessage(...)
+    #
+    # We keep looping until the model stops calling tools and produces a final answer.
+    #
+    # The max-iteration cap prevents infinite loops if the model gets confused.
+
+    for _ in range(8):
+        # A) Ask the model to respond given the current conversation state.
+        ai = await llm.ainvoke(messages)
+
+        # Store the model message in the conversation.
+        messages.append(ai)
+
+        # If the model did not request any tool calls, it is "done" and we can exit.
+        if not isinstance(ai, AIMessage) or not ai.tool_calls:
+            break
+
+        # B) IMPORTANT:
+        # The model might emit MULTIPLE tool calls in a single turn.
+        # We execute them one-by-one, in order, and only move to the next after
+        # we have a result for the previous one.
+        #
+        # This avoids the earlier "placeholder" problem like:
+        #   div(a="[result of previous call]", b=3)
+
+        for call in ai.tool_calls:
+            tool_name = call["name"]
+            tool_args = call.get("args", {}) or {}
+
+            # Each tool call has an ID; ToolMessage must reference it.
+            tool_call_id = call.get("id") or call.get("tool_call_id")
+
+            # Actually run the MCP tool asynchronously.
+            raw_result = await tool_by_name[tool_name].ainvoke(tool_args)
+
+            # Normalize to text, then extract a clean number token.
+            text = tool_text(raw_result)
+            numeric_value = last_number(text)
+
+            # C) Feed the tool result back to the model.
+            # We intentionally pass ONLY the numeric value (e.g., "96" not the sentence)
+            # so the next tool call can reuse it directly and reliably.
+            messages.append(
+                ToolMessage(content=str(numeric_value), tool_call_id=tool_call_id)
             )
-            print(f"{GREEN}Warm-up complete.{RESET}")
-        except Exception as e:
-            print(f"Warm-up skipped due to: {type(e).__name__}: {e!r}")
 
-        while True:
-            cmd = input("\nEnter tool name (or 'exit'): ").strip().lower()
-            if cmd == "exit":
-                break
+    # =========================================================================
+    # 4) Print the full trace 
+    # =========================================================================
+    print("\n=== FULL AGENT TRACE ===")
+    for msg in messages:
+        if isinstance(msg, HumanMessage):
+            print("USER:", msg.content)
 
-            if cmd not in tool_names:
-                print("Unknown tool:", cmd)
-                continue
+        elif isinstance(msg, AIMessage):
+            # The AIMessage content is often empty when it is doing tool-calling.
+            print("ASSISTANT (LLM):", msg.content)
 
-            user_input = input("Enter input text: ").strip()
-            if not user_input:
-                continue
+            # Show tool calls that the LLM asked for.
+            if msg.tool_calls:
+                for c in msg.tool_calls:
+                    name = c.get("name")
+                    args = c.get("args", {}) or {}
+                    print(f"→ TOOL CALL: {name}({format_args(args)})")
 
-            try:
-                # Get the prompt template for this tool from the server
-                print(f"{BLUE}Requesting prompt for tool: {cmd}{RESET}")
-                # Pass the actual user input as the 'text' argument
-                prompt_result = await client.get_prompt(cmd, arguments={"text": user_input})
+        elif isinstance(msg, ToolMessage):
+            # Show what we fed back to the model.
+            print(f"← TOOL RESULT for ID {msg.tool_call_id}:", msg.content)
 
-                # Extract the rendered content robustly across shapes
-                def _iter_messages(res):
-                    msgs = getattr(res, "messages", None)
-                    if msgs is None and isinstance(res, dict):
-                        msgs = res.get("messages")
-                    if msgs is None:
-                        if isinstance(res, dict) and "role" in res and "content" in res:
-                            msgs = [res]
-                    return msgs or []
+    # =========================================================================
+    # 5) Print the final natural language answer
+    # =========================================================================
+    # Walk backwards to find the most recent AIMessage with actual text content.
+    final_text = ""
+    for msg in reversed(messages):
+        if isinstance(msg, AIMessage) and (msg.content or "").strip():
+            final_text = msg.content.strip()
+            break
 
-                def _first_text_from_content(content):
-                    if isinstance(content, str):
-                        return content
-                    if hasattr(content, "text"):
-                        return content.text
-                    if isinstance(content, dict) and "text" in content:
-                        return content["text"]
-                    if isinstance(content, (list, tuple)):
-                        for part in content:
-                            if isinstance(part, str):
-                                return part
-                            if hasattr(part, "text"):
-                                return part.text
-                            if isinstance(part, dict) and "text" in part:
-                                return part["text"]
-                    return ""
-
-                rendered_prompt = ""
-                for msg in _iter_messages(prompt_result):
-                    role = getattr(msg, "role", msg.get("role") if isinstance(msg, dict) else None)
-                    if role == "user":
-                        content = getattr(msg, "content", msg.get("content") if isinstance(msg, dict) else None)
-                        rendered_prompt = _first_text_from_content(content)
-                        if rendered_prompt:
-                           break
-
-                if not rendered_prompt:
-                    rendered_prompt = f"You are a helpful assistant. Please operate on the following text:\n\n{user_input}"
-
-                print(f"{BLUE}Calling Ollama with user content: {rendered_prompt!r}{RESET}")
-                result = await call_ollama(
-                    system_prompt="You are a helpful assistant.",
-                    user_input=rendered_prompt,
-                    model=model_name,
-                )
-
-                # Display result in green
-                print(f"\n{GREEN}[{cmd.upper()} RESULT]\n{result}{RESET}\n")
-
-            except Exception as e:
-                print(f"Unexpected error: {type(e).__name__}: {e!r}")
+    print("\n=== FINAL NATURAL LANGUAGE ANSWER ===")
+    print(final_text)
 
 
 if __name__ == "__main__":
+    # Standard pattern for running async Python code.
     asyncio.run(main())
