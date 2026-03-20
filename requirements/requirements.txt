@@ -9,5 +9,7 @@ langchain>=1.2.6
 langgraph>=1.0.3
 langchain_mcp_adapters>=0.2.1
 python-jose>=3.5.0
+chromadb>=1.0.0
+httpx>=0.28.0
 sentence-transformers>=5.1.2
 pymupdf>=1.26.6
