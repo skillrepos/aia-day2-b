@@ -42,7 +42,7 @@ python scripts/warmup.py &
 
 You can open the [labs.md](./labs.md) file either in your codespace or in a separate browswer tab/instance.**
 
-![Labs](./images/aia-2-35.png?raw=true "Labs")
+![Labs](./images/aia2b8.png?raw=true "Labs")
 
 <br>
 
