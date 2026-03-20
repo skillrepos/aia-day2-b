@@ -189,7 +189,7 @@ python scripts/mcp_explorer.py http://localhost:8000/mcp 5000
 
 4. You should automatically be connected to the server. The *Prompts* item will be selected by default. (If the prompt is not shown, you can click on *Prompts*.)
 
-![Resources](./images/mcp110.png?raw=true "Resources") 
+![Resources](./images/aia2b4.png?raw=true "Resources") 
 <br><br>
 
 
@@ -209,18 +209,18 @@ python scripts/mcp_explorer.py http://localhost:8000/mcp 5000
 
 7. Next, let's take a look at the resources available from the server. Click on the *Resources* button, then *Read Resource*. What you'll see is the resource with the major cities provided by the server.
 
-![Resources](./images/mcp106.png?raw=true "Resources") 
+![Resources](./images/aia2b5.png?raw=true "Resources") 
 <br><br>
 
 8. Finally, let's take a look at the tools available from the server. Click on *Tools*. You'll see two tools defined - one to calculate distance and one to convert currency.
 
-![Tools](./images/mcp112.png?raw=true "Tools") 
+![Tools](./images/aia2b6.png?raw=true "Tools") 
 <br><br>
 
 
 9. Let's try running the distance_between tool. Select the tool in the list. Underneath, you'll see the input fields for the tool. You can try any latitude and longitude values you want and then click *Execute to see the results. (The example used in the screeshot - 40,74 and 51, .12 - equates roughly to New York and London.)
 
-![Running tool](./images/mcp113.png?raw=true "Running tool") 
+![Running tool](./images/aia2b7.png?raw=true "Running tool") 
 <br><br>
 
 10. In preparation for other labs, you can stop (CTRL+C) the running instance of mcp_travel_server.py in your terminal to free up port 8000. You can also close the browser tab that has the explorer running in it.
