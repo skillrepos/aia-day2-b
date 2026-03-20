@@ -1,6 +1,6 @@
 # travel_server.py
 """
-TravelHelper – FastMCP 2.8.1 demo
+TravelHelper – FastMCP 3.x demo
 Serves via Streamable-HTTP at http://localhost:8000/mcp
 """
 import os

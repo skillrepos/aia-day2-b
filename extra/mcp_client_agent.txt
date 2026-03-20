@@ -1,4 +1,4 @@
-# mcp_client_agent.py – FastMCP 2.11.x & Ollama, robust + timeouts + retries
+# mcp_client_agent.py – FastMCP 3.x & Ollama, robust + timeouts + retries
 import asyncio, json, typing
 import httpx
 

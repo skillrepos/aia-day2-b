@@ -1,5 +1,5 @@
-# mcp_server.py – FastMCP 2.10.4-compatible server
-from mcp.server.fastmcp import FastMCP
+# mcp_server.py – FastMCP 3.x-compatible server
+from fastmcp import FastMCP
 
 # ANSI color codes
 BLUE = "\033[94m"
@@ -10,50 +10,43 @@ RESET = "\033[0m"
 server = FastMCP()
 
 # ───────────────────────────────────────────────
-# Prompt handlers – return single message templates
-# These are used by clients to fetch structured prompts
+# Prompt handlers – return rendered prompt strings
+# FastMCP 3.x requires: str, list[Message], or PromptResult
+# Returning a plain str is the simplest; FastMCP wraps it
+# in a user Message automatically.
 # ───────────────────────────────────────────────
 
 @server.prompt("summarize")
-def prompt_summarize(text: str) -> dict:
+def prompt_summarize(text: str) -> str:
     """You are a helpful assistant. Summarize the following text in one sentence."""
     print(f"{BLUE}[PROMPT REQUEST] summarize called with text: {text!r}{RESET}")
-    result = {
-        "role": "user",
-        "content": (
-            "You are a helpful assistant. Summarize the following text in one sentence.\n\n"
-            f"{text}"
-        )
-    }
-    print(f"{GREEN}[PROMPT RETURN] summarize response: {result}{RESET}")
+    result = (
+        "You are a helpful assistant. Summarize the following text in one sentence.\n\n"
+        f"{text}"
+    )
+    print(f"{GREEN}[PROMPT RETURN] summarize response: {result!r}{RESET}")
     return result
 
 @server.prompt("reword")
-def prompt_reword(text: str) -> dict:
+def prompt_reword(text: str) -> str:
     """You are a helpful assistant. Reword the following text using clearer and simpler language."""
     print(f"{BLUE}[PROMPT REQUEST] reword called with text: {text!r}{RESET}")
-    result = {
-        "role": "user",
-        "content": (
-            "You are a helpful assistant. Reword the following text using clearer and simpler language.\n\n"
-            f"{text}"
-        )
-    }
-    print(f"{GREEN}[PROMPT RETURN] reword response: {result}{RESET}")
+    result = (
+        "You are a helpful assistant. Reword the following text using clearer and simpler language.\n\n"
+        f"{text}"
+    )
+    print(f"{GREEN}[PROMPT RETURN] reword response: {result!r}{RESET}")
     return result
 
 @server.prompt("expand")
-def prompt_expand(text: str) -> dict:
+def prompt_expand(text: str) -> str:
     """You are a helpful assistant. Expand on the following idea with additional detail and explanation."""
     print(f"{BLUE}[PROMPT REQUEST] expand called with text: {text!r}{RESET}")
-    result = {
-        "role": "user",
-        "content": (
-            "You are a helpful assistant. Expand on the following idea with additional detail and explanation.\n\n"
-            f"{text}"
-        )
-    }
-    print(f"{GREEN}[PROMPT RETURN] expand response: {result}{RESET}")
+    result = (
+        "You are a helpful assistant. Expand on the following idea with additional detail and explanation.\n\n"
+        f"{text}"
+    )
+    print(f"{GREEN}[PROMPT RETURN] expand response: {result!r}{RESET}")
     return result
 
 # ───────────────────────────────────────────────
@@ -81,14 +74,17 @@ def expand_tool(text: str) -> str:
 
 # ───────────────────────────────────────────────
 # Resource – lets the client discover the model to use
+# FastMCP 3.x resources must return str, bytes, or
+# list[ResourceContent].  We return JSON as a string.
 # ───────────────────────────────────────────────
 
 @server.resource("resource://model")
-def model_name():
+def model_name() -> str:
+    import json
     print(f"{BLUE}[RESOURCE REQUEST] model_name requested{RESET}")
     result = {"model": "llama3.2:latest"}
     print(f"{GREEN}[RESOURCE RETURN] model_name response: {result}{RESET}")
-    return result
+    return json.dumps(result)
 
 # ───────────────────────────────────────────────
 # Entry point – start the FastMCP server with streamable HTTP

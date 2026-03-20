@@ -1,4 +1,4 @@
-# secure_client.py  – FastMCP ≥ 2.3
+# secure_client.py  – FastMCP ≥ 3.0
 # 1) Obtains a bearer token from the auth server
 # 2) Uses it to call the secure 'add' tool on the MCP server
 

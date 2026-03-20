@@ -100,7 +100,7 @@ from fastmcp import Client
 
 # latest version of FastMCP is async, so we need the async block
 async def main():
-    # The string URL is enough – FastMCP picks Streamable HTTP/SSE transport
+    # The string URL is enough – FastMCP auto-detects the transport
     async with Client("http://127.0.0.1:8931/sse") as client:
         # Discover available tools
         tools = await client.list_tools()
