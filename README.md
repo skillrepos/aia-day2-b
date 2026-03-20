@@ -20,15 +20,25 @@ This will run for a long time while it gets everything ready.
 
 After the initial startup, it will run a script to setup the python environment and install needed python pieces. This will take several more minutes to run. It will look like this while this is running.
 
-![Final prep](./images/aia-0-5.png?raw=true "Final prep")
+![Final prep](./images/aia2b1.png?raw=true "Final prep")
 
 The codespace is ready to use when you see output like the one shown below in its terminal.
 
-![Ready to use](./images/aia-2-36.png?raw=true "Ready to use")
+![Ready to use](./images/aia2b2.png?raw=true "Ready to use")
 
 <br><br>
 
-**3. Open the labs file.**
+**3. Run the warmup script in the TERMINAL to make the LLM interactions faster.**
+
+```
+python scripts/warmup.py &
+```
+
+![warmup](./images/aia2b3.png?raw=true "warmup")
+
+<br><br>
+
+**4. Open the labs file.**
 
 You can open the [labs.md](./labs.md) file either in your codespace or in a separate browswer tab/instance.**
 
