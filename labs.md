@@ -397,7 +397,7 @@ As you review the differences, note the key components:
 
 <br>
 
-![Updating the MCP server](./images/aia-2-31.png?raw=true "Updating the MCP server") 
+![Updating the MCP server](./images/aia2b13.png?raw=true "Updating the MCP server") 
 
 <br><br>
 
@@ -416,7 +416,7 @@ As you review the differences, note the key components:
 python mcp_server_classification.py
 ```
 
-![Running the MCP server](./images/aia-2-33.png?raw=true "Running the MCP server") 
+![Running the MCP server](./images/aia2b14.png?raw=true "Running the MCP server") 
 
 <br><br>
 
