@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.12 - 03/20/26
+## Revision 1.12 - 03/28/26
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -85,7 +85,7 @@ python ../tools/discover_tools.py  8931 sse
 <br><br>
 
 
-8. Next, let's see how we can create a minimal client to use the MCP server. Create a new file called *mpc_client.py*. We'll add code for this in the next step.
+8. Next, let's see how we can create a minimal client to use the MCP server. Create a new file called *mcp_client.py*. We'll add code for this in the next step.
 
 ```
 code mcp_client.py
