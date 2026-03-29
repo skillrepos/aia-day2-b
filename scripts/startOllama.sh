@@ -35,15 +35,18 @@ echo "========================================"
 echo ""
 
 # Step 1: Check and install Ollama if needed
-echo "Step 1: Checking for Ollama installation..."
-if command -v ollama &> /dev/null; then
-    echo "✓ Ollama is already installed"
+if ! command -v ollama >/dev/null 2>&1; then
+  echo "Installing Ollama..."
+  curl -fsSL https://ollama.com/install.sh | sh
+  # Remove GPU libraries to save disk in CPU-only Codespaces
+  rm -rf /usr/local/lib/ollama/cuda_v12 \
+         /usr/local/lib/ollama/cuda_v13 \
+         /usr/local/lib/ollama/mlx_cuda_v13 \
+         /usr/local/lib/ollama/vulkan 2>/dev/null || true
 else
-    echo "  Installing Ollama..."
-    install_zstd
-    curl -fsSL https://ollama.com/install.sh | sh
-    echo "✓ Ollama installed"
+  echo "Ollama already installed, skipping."
 fi
+
 echo ""
 
 # Step 2: Start Ollama service
