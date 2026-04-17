@@ -102,6 +102,23 @@ def is_support_query(query: str) -> bool:
     return False
 
 # ╔══════════════════════════════════════════════════════════════════╗
+# 2b. Dynamic MCP Tool Discovery                                     ║
+# ╚══════════════════════════════════════════════════════════════════╝
+#
+# Instead of hardcoding what tools the server offers, we ASK the
+# server what it exposes at runtime. The resulting catalog is injected
+# into the LLM's system prompt so the model sees the live tool info
+# that came from the MCP server.
+async def discover_mcp_tools(mcp):
+    """Fetch tool definitions from the running MCP server."""
+
+def tool_names(tools) -> set:
+    """Extract the set of tool names from a list of tool objects/dicts."""
+
+def require_tools(available: set, required) -> Optional[str]:
+    """Return an error message if any required tool is missing, else None."""
+
+# ╔══════════════════════════════════════════════════════════════════╗
 # 3. Customer Support Classification Workflow                        ║
 # ╚══════════════════════════════════════════════════════════════════╝
 async def handle_canonical_query_with_classification(user_query: str) -> str:
@@ -110,6 +127,8 @@ async def handle_canonical_query_with_classification(user_query: str) -> str:
     """
     async with Client(MCP_ENDPOINT) as mcp:
         try:
+            # Discover what the MCP server actually exposes – do not hardcode tool names.
+
             print("[1/4] Classifying support query...")
             classification = unwrap(classify_result)
 
@@ -193,6 +212,7 @@ async def handle_rag_search(user_query: str) -> str:
     """
     async with Client(MCP_ENDPOINT) as mcp:
         try:
+            # Discover server tools at runtime (do not rely on hardcoded names).
 
             search_data = unwrap(search_result)
 
