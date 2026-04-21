@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.12 - 03/28/26
+## Revision 1.13 - 04/21/26
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -21,7 +21,7 @@
 
 **Lab 1 - MCP Jumpstart**
 
-**Purpose: In this lab, we'll see how to go from hand-rolled API calls to an MCP implementation.**
+**Purpose: In this lab, we'll compare a hand-rolled API integration with an MCP-based integration and see how MCP reduces custom wiring and improves discovery.**
 
 1. For our labs in this workshop, we have different directories with related code. For this lab, it is the *lab1* directory. Change into that directory in the terminal.
    
