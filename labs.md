@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.13 - 04/21/26
+## Revision 1.14 - 04/21/26
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -59,10 +59,10 @@ python classic_calc.py
 ```
 <br><br>
 
-5. Now, let's see how we can use an MCP server to do this. There is an existing MCP server for simple calculator functions that we're going to be using in this lab. It is named *calculator-mcp* from *wrtnlabs*. (The code for it is in GitHub at https://github.com/wrtnlabs/calculator-mcp if you are interested.) Start a running instance of the server by using *npx* (a Node.js CLI). We'll start it running on port 8931. Run the command below and you should see output like the screenshot shown.
+5. Now, let's see how we can use an MCP server to do this. There is an existing MCP server for simple calculator functions that we're going to be using in this lab. We'll run a training-fork of it - *calculator-mcp* from *skillrepos*. It has been updated to speak the current **Streamable HTTP** MCP transport (the original upstream still uses the now-deprecated SSE transport). The code is in GitHub at https://github.com/skillrepos/calculator-mcp if you are interested. Start a running instance of the server by using *npx* (a Node.js CLI). *npx* will clone the fork and build it the first time (this may take a minute); subsequent runs are cached. We'll start it running on port 8931. Run the command below and you should see output like the screenshot shown.
 
 ```
-npx -y @wrtnlabs/calculator-mcp@latest --port 8931
+npx -y github:skillrepos/calculator-mcp --port 8931
 ```
 
 ![Running remote MCP server](./images/mcp5.png?raw=true "Running remote MCP server")
@@ -74,10 +74,10 @@ npx -y @wrtnlabs/calculator-mcp@latest --port 8931
 ![Splitting terminal](./images/mcp96.png?raw=true "Splitting terminal")
 <br><br>
 
-7. We have a small program that uses a MCP client to connect to a server and display information about available tools from the server. Let's use it to see what functions this MCP server provides. It assumes localhost and takes a port and transport as arguments. Run it with the command below:
+7. We have a small program that uses a MCP client to connect to a server and display information about available tools from the server. Let's use it to see what functions this MCP server provides. It assumes localhost and takes a port and transport as arguments. Since our server now speaks Streamable HTTP on the `/mcp` path, we pass `mcp` as the transport argument. Run it with the command below:
 
 ```
-python ../tools/discover_tools.py  8931 sse
+python ../tools/discover_tools.py  8931 mcp
 ```
 
 ![Discovering tools](./images/aia-2-38.png?raw=true "Discovering tools")
@@ -101,7 +101,8 @@ from fastmcp import Client
 # latest version of FastMCP is async, so we need the async block
 async def main():
     # The string URL is enough – FastMCP auto-detects the transport
-    async with Client("http://127.0.0.1:8931/sse") as client:
+    # (/mcp endpoints use the current Streamable HTTP transport)
+    async with Client("http://127.0.0.1:8931/mcp") as client:
         # Discover available tools
         tools = await client.list_tools()
         print("Discovered tools:", [t.name for t in tools])

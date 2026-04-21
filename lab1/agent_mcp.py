@@ -35,8 +35,8 @@ async def main():
 
     client = MultiServerMCPClient({
         "CalcMCP": {
-            "url": "http://127.0.0.1:8931/sse",
-            "transport": "sse",
+            "url": "http://127.0.0.1:8931/mcp/",
+            "transport": "streamable_http",
         }
     })
 
