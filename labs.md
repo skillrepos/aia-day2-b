@@ -57,6 +57,9 @@ print("Result :", requests.get(url, timeout=10).text)
 ```
 python classic_calc.py
 ```
+
+![Running classic_calc.py](./images/aia2b15.png?raw=true "Running classic_calc.py")
+
 <br><br>
 
 5. Now, let's see how we can use an MCP server to do this. There is an existing MCP server for simple calculator functions that we're going to be using in this lab. We'll run a training-fork of it - *calculator-mcp* from *skillrepos*. It has been updated to speak the current **Streamable HTTP** MCP transport (the original upstream still uses the now-deprecated SSE transport). The code is in GitHub at https://github.com/skillrepos/calculator-mcp if you are interested. Start a running instance of the server by using *npx* (a Node.js CLI). *npx* will clone the fork and build it the first time (this may take a minute); subsequent runs are cached. We'll start it running on port 8931. Run the command below and you should see output like the screenshot shown.
@@ -65,7 +68,7 @@ python classic_calc.py
 npx -y github:skillrepos/calculator-mcp --port 8931
 ```
 
-![Running remote MCP server](./images/mcp5.png?raw=true "Running remote MCP server")
+![Running remote MCP server](./images/aia2b16.png?raw=true "Running remote MCP server")
 <br><br>
 
 
