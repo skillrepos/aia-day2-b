@@ -24,9 +24,12 @@ Parallelism strategy:
 
 from __future__ import annotations
 
+import asyncio
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import Callable
 
 # ── ANSI helpers ─────────────────────────────────────────────────────
@@ -38,9 +41,15 @@ RESET  = "\033[0m"
 BOLD   = "\033[1m"
 DIM    = "\033[2m"
 
-OLLAMA_MODEL   = "llama3.2"
-EMBED_MODEL    = "all-MiniLM-L6-v2"
-OLLAMA_BASE    = "http://127.0.0.1:11434"
+OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "llama3.2")
+EMBED_MODEL    = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")
+OLLAMA_BASE    = os.getenv("OLLAMA_BASE", "http://127.0.0.1:11434")
+CHROMA_PATH    = Path(os.getenv("CHROMA_PATH", "./mcp_chroma_db"))
+MCP_ENDPOINT   = os.getenv("MCP_ENDPOINT", "http://127.0.0.1:8000/mcp/")
+
+# Optional: perform one end-to-end MCP call so the running server process
+# preloads heavy runtime resources before interactive agent use.
+ENABLE_MCP_WARMUP = os.getenv("MCP_WARMUP", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 # ── Individual warmup functions ──────────────────────────────────────
 
@@ -122,17 +131,60 @@ def warmup_embedding_model() -> bool:
 
 
 def warmup_chromadb() -> bool:
-    """Import and initialize an ephemeral ChromaDB client."""
+    """Import and initialize the persistent ChromaDB path used by the MCP server."""
     try:
         t0 = time.time()
         import chromadb
-        _ = chromadb.EphemeralClient()
+
+        # Match the server's real runtime path so sqlite/index files are touched.
+        client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+        collection = client.get_or_create_collection("omnitech_knowledge")
+        _ = collection.count()
+
         dt = time.time() - t0
-        print(f"  {GREEN}✓ ChromaDB ready ({dt:.1f}s){RESET}")
+        print(f"  {GREEN}✓ ChromaDB persistent path ready ({dt:.1f}s): {CHROMA_PATH}{RESET}")
         return True
     except Exception as e:
         print(f"  {RED}✗ ChromaDB warmup failed: {e}{RESET}")
         return False
+
+
+def warmup_mcp_end_to_end() -> bool:
+    """Optionally warm a running MCP server with lightweight discovery/search calls."""
+    if not ENABLE_MCP_WARMUP:
+        print(f"  {DIM}• MCP warmup disabled (set MCP_WARMUP=1 to enable){RESET}")
+        return True
+
+    async def _run() -> bool:
+        try:
+            from fastmcp import Client
+
+            t0 = time.time()
+            async with Client(MCP_ENDPOINT) as mcp:
+                tools = await mcp.list_tools()
+                tool_names = {
+                    getattr(t, "name", None) or (t.get("name") if isinstance(t, dict) else None)
+                    for t in tools
+                }
+
+                # Warm a common retrieval path if available.
+                if "vector_search_knowledge" in tool_names:
+                    await mcp.call_tool(
+                        "vector_search_knowledge",
+                        {"query": "password reset", "top_k": 1},
+                    )
+
+            dt = time.time() - t0
+            print(f"  {GREEN}✓ MCP end-to-end warmup complete ({dt:.1f}s){RESET}")
+            return True
+        except Exception as e:
+            print(
+                f"  {YELLOW}⚠ MCP warmup skipped/failed: {e}{RESET}\n"
+                f"  {DIM}  (Start the server first to enable this optimization.){RESET}"
+            )
+            return False
+
+    return asyncio.run(_run())
 
 
 def warmup_library_imports() -> bool:
@@ -212,6 +264,7 @@ def main() -> None:
     print(f"\n{YELLOW}Phase 3 ▸ Loading supporting libraries …{RESET}")
     results["ChromaDB"]  = warmup_chromadb()
     results["Libraries"] = warmup_library_imports()
+    results["MCP end-to-end"] = warmup_mcp_end_to_end()
 
     # ── Summary ──────────────────────────────────────────────────────
     total_dt = time.time() - total_t0
