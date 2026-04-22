@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.14 - 04/21/26
+## Revision 1.15 - 04/21/26
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
