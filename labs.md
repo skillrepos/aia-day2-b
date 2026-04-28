@@ -1,7 +1,7 @@
 # Enterprise AI Accelerator Workshop
 ## Day 2 - Part 2 - MCP
 ## Session labs 
-## Revision 1.15 - 04/21/26
+## Revision 1.16 - 04/27/26
 
 **Versions of dialogs, buttons, etc. shown in screenshots may differ from current version used in dev environments**
 
@@ -171,7 +171,7 @@ code mcp_travel_server.py
 ```
 <br><br>
 
-3. Now, let's start the server running. Issue the command below in the terminal to run a startup script. You should see the code start up and say it is running on localhost (127.0.0.1) and availale on port 8000. (
+3. Now, let's start the server running. Issue the command below in the terminal. You should see the code start up and say it is running on localhost (127.0.0.1) and availale on port 8000. (
 
 ```
 python mcp_travel_server.py
